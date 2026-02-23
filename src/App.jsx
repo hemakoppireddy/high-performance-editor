@@ -10,23 +10,20 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div className="app-container">
       <div
         data-test-id="editor-container"
-        style={{ flex: 1, padding: "10px" }}
+        className="editor-panel"
       >
+        <div className="panel-header">Editor</div>
         <Editor addLog={addLog} />
       </div>
 
       <div
         data-test-id="event-dashboard"
-        style={{
-          width: "40%",
-          borderLeft: "1px solid #ccc",
-          padding: "10px",
-          overflow: "auto",
-        }}
+        className="dashboard-panel"
       >
+        <div className="panel-header">Event Dashboard</div>
         <Dashboard logs={logs} />
       </div>
     </div>
