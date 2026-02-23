@@ -1,23 +1,23 @@
-# Use lightweight Node image
-FROM node:18-alpine
+# Stage 1: Build
+FROM node:20-alpine AS builder
 
-# Install curl (needed for healthcheck)
-RUN apk add --no-cache curl
-
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
+COPY package.json package-lock.json* ./
 RUN npm install
 
-# Copy project files
 COPY . .
+RUN npm run build
 
-# Expose port (must match docker-compose)
+# Stage 2: Serve Production Build
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN npm install -g serve
+
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 3000
 
-# Start Vite dev server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
