@@ -3,7 +3,18 @@ import useHistory from "../hooks/useHistory";
 
 export default function Editor({ addLog }) {
   const editorRef = useRef(null);
+  const chordActive = useRef(false);
+  const chordTimer = useRef(null);
+
   const { content, updateContent, undo, redo, undoStack } = useHistory("");
+
+  const resetChord = () => {
+    chordActive.current = false;
+    if (chordTimer.current) {
+      clearTimeout(chordTimer.current);
+      chordTimer.current = null;
+    }
+  };
 
   const handleInput = (e) => {
     updateContent(e.target.value);
@@ -13,6 +24,31 @@ export default function Editor({ addLog }) {
     const textarea = editorRef.current;
     const isMac = navigator.platform.toUpperCase().includes("MAC");
     const isModifier = isMac ? e.metaKey : e.ctrlKey;
+
+    // ================= CHORD SECOND KEY =================
+    if (chordActive.current) {
+      if (isModifier && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        addLog("Action: Chord Success");
+        resetChord();
+        return;
+      } else {
+        resetChord();
+      }
+    }
+
+    // ================= CHORD FIRST KEY =================
+    if (isModifier && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+
+      chordActive.current = true;
+
+      chordTimer.current = setTimeout(() => {
+        resetChord();
+      }, 2000);
+
+      return;
+    }
 
     // ================= SAVE =================
     if (isModifier && e.key.toLowerCase() === "s") {
@@ -61,7 +97,7 @@ export default function Editor({ addLog }) {
       return;
     }
 
-    // ================= TAB / SHIFT+TAB =================
+    // ================= TAB =================
     if (e.key === "Tab") {
       e.preventDefault();
 
@@ -72,7 +108,6 @@ export default function Editor({ addLog }) {
       const lineStart = value.lastIndexOf("\n", start - 1) + 1;
 
       if (e.shiftKey) {
-        // OUTDENT
         if (value.slice(lineStart, lineStart + 2) === "  ") {
           const newValue =
             value.slice(0, lineStart) +
@@ -86,7 +121,6 @@ export default function Editor({ addLog }) {
           }, 0);
         }
       } else {
-        // INDENT
         const newValue =
           value.slice(0, lineStart) +
           "  " +
@@ -102,7 +136,7 @@ export default function Editor({ addLog }) {
       return;
     }
 
-    // ================= SMART ENTER =================
+    // ================= ENTER =================
     if (e.key === "Enter") {
       e.preventDefault();
 
@@ -132,7 +166,6 @@ export default function Editor({ addLog }) {
       return;
     }
 
-    // ================= DEFAULT LOG =================
     addLog(`Type: ${e.type} | Key: ${e.key}`);
   };
 
@@ -153,18 +186,18 @@ export default function Editor({ addLog }) {
       onInput={handleInput}
       onKeyDown={handleKeyDown}
       style={{
-  flex: 1,
-  width: "100%",
-  resize: "none",
-  backgroundColor: "#1e1e1e",
-  color: "#d4d4d4",
-  border: "none",
-  outline: "none",
-  padding: "16px",
-  fontSize: "14px",
-  lineHeight: "1.6",
-  fontFamily: "Fira Code, monospace",
-}}
+        flex: 1,
+        width: "100%",
+        resize: "none",
+        backgroundColor: "#1e1e1e",
+        color: "#d4d4d4",
+        border: "none",
+        outline: "none",
+        padding: "16px",
+        fontSize: "14px",
+        lineHeight: "1.6",
+        fontFamily: "Fira Code, monospace",
+      }}
     />
   );
 }
