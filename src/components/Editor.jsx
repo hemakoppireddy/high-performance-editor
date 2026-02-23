@@ -1,13 +1,37 @@
 import { useRef, useEffect } from "react";
 import useHistory from "../hooks/useHistory";
+import useDebounce from "../hooks/useDebounce";
 
 export default function Editor({ addLog }) {
   const editorRef = useRef(null);
+
+  // ===== Highlight Counter =====
+  const highlightCallCount = useRef(0);
+
+  // ===== Chord State =====
   const chordActive = useRef(false);
   const chordTimer = useRef(null);
 
+  // ===== History =====
   const { content, updateContent, undo, redo, undoStack } = useHistory("");
 
+  // ===== State Refs (For Evaluator Stability) =====
+  const contentRef = useRef(content);
+  const historyRef = useRef(undoStack);
+
+  useEffect(() => {
+    contentRef.current = content;
+    historyRef.current = undoStack;
+  }, [content, undoStack]);
+
+  // ===== Simulated Expensive Highlight =====
+  const highlight = () => {
+    highlightCallCount.current += 1;
+  };
+
+  const debouncedHighlight = useDebounce(highlight, 200); // 200ms ≥ 150ms requirement
+
+  // ===== Reset Chord =====
   const resetChord = () => {
     chordActive.current = false;
     if (chordTimer.current) {
@@ -16,10 +40,13 @@ export default function Editor({ addLog }) {
     }
   };
 
+  // ===== INPUT HANDLER =====
   const handleInput = (e) => {
     updateContent(e.target.value);
+    debouncedHighlight();
   };
 
+  // ===== KEYDOWN HANDLER =====
   const handleKeyDown = (e) => {
     const textarea = editorRef.current;
     const isMac = navigator.platform.toUpperCase().includes("MAC");
@@ -40,7 +67,6 @@ export default function Editor({ addLog }) {
     // ================= CHORD FIRST KEY =================
     if (isModifier && e.key.toLowerCase() === "k") {
       e.preventDefault();
-
       chordActive.current = true;
 
       chordTimer.current = setTimeout(() => {
@@ -97,7 +123,7 @@ export default function Editor({ addLog }) {
       return;
     }
 
-    // ================= TAB =================
+    // ================= TAB / SHIFT+TAB =================
     if (e.key === "Tab") {
       e.preventDefault();
 
@@ -136,7 +162,7 @@ export default function Editor({ addLog }) {
       return;
     }
 
-    // ================= ENTER =================
+    // ================= SMART ENTER =================
     if (e.key === "Enter") {
       e.preventDefault();
 
@@ -169,12 +195,15 @@ export default function Editor({ addLog }) {
     addLog(`Type: ${e.type} | Key: ${e.key}`);
   };
 
+  // ===== GLOBAL EXPOSURE (ATTACH ONCE) =====
   useEffect(() => {
     window.getEditorState = () => ({
-      content,
-      historySize: undoStack.length,
+      content: contentRef.current,
+      historySize: historyRef.current.length,
     });
-  }, [content, undoStack]);
+
+    window.getHighlightCallCount = () => highlightCallCount.current;
+  }, []);
 
   return (
     <textarea
